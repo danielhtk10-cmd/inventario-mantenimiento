@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario · Control de Materiales</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;1,300&family=DM+Mono:wght@400;500&family=Mulish:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --surface2: #f0ede6;
+  --border: #e2ddd5;
+  --ink: #1c1a17;
+  --ink2: #4a4640;
+  --muted: #9c9489;
+  --amber: #c8820a;
+  --amber-light: #fef3dc;
+  --amber-dark: #7c4f05;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --green: #1a7a4a;
+  --green-light: #e8f5ee;
+  --blue: #1e5fa8;
+  --blue-light: #e8f0fb;
+  --shadow: 0 1px 3px rgba(28,26,23,.08), 0 4px 12px rgba(28,26,23,.05);
+  --shadow-md: 0 4px 16px rgba(28,26,23,.1), 0 1px 4px rgba(28,26,23,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-size:13px;min-height:100vh;}
+
+/* ── HEADER ── */
+.header{background:var(--ink);color:#fff;padding:0 28px;display:flex;align-items:center;gap:0;height:58px;position:sticky;top:0;z-index:200;}
+.header-brand{display:flex;align-items:baseline;gap:10px;}
+.header-icon{font-size:20px;}
+.header-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;letter-spacing:-.3px;color:#f5f0e8;}
+.header-sep{width:1px;height:20px;background:rgba(255,255,255,.15);margin:0 20px;}
+.header-sub{font-size:11px;color:rgba(255,255,255,.45);font-weight:300;letter-spacing:.5px;text-transform:uppercase;}
+.header-space{flex:1;}
+.header-actions{display:flex;gap:8px;}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:calc(100vh - 58px);}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+.main{flex:1;overflow:auto;padding:24px;}
+
+/* ── SIDEBAR ── */
+.sb-section{padding:16px;border-bottom:1px solid var(--border);}
+.sb-label{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ink2);transition:all .15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--ink);}
+.nav-item.active{background:var(--ink);color:#fff;}
+.nav-item .nav-icon{font-size:14px;width:18px;text-align:center;}
+.nav-badge{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;}
+.nav-badge.ok{background:var(--green);}
+
+.stat-mini{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.stat-mini-label{font-size:11px;color:var(--muted);}
+.stat-mini-val{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--ink);}
+.stat-mini-val.red{color:var(--red);}
+.stat-mini-val.green{color:var(--green);}
+.stat-mini-val.amber{color:var(--amber);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:'Mulish',sans-serif;letter-spacing:.2px;}
+.btn-ink{background:var(--ink);color:#fff;}
+.btn-ink:hover{background:#2e2b26;}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-amber:hover{background:var(--amber-dark);}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--ink2);}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* ── CARDS ── */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap;}
+.page-title{font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.5px;line-height:1.2;}
+.page-title span{color:var(--amber);}
+.page-desc{font-size:12px;color:var(--muted);margin-top:3px;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:var(--shadow);}
+.kpi-icon{font-size:20px;margin-bottom:8px;}
+.kpi-val{font-family:'Fraunces',serif;font-size:26px;font-weight:600;line-height:1;margin-bottom:4px;}
+.kpi-val.red{color:var(--red);}
+.kpi-val.green{color:var(--green);}
+.kpi-val.amber{color:var(--amber);}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.card-title{font-family:'Fraunces',serif;font-size:15px;font-weight:600;}
+.card-body{padding:0;}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{background:var(--surface2);border-bottom:1px solid var(--border);padding:9px 14px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;white-space:nowrap;}
+.tbl td{border-bottom:1px solid var(--border);padding:10px 14px;font-size:12px;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--surface2);}
+.tbl td:last-child{text-align:right;}
+.tbl th:last-child{text-align:right;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.badge-red{background:var(--red-light);color:var(--red);}
+.badge-green{background:var(--green-light);color:var(--green);}
+.badge-amber{background:var(--amber-light);color:var(--amber-dark);}
+.badge-blue{background:var(--blue-light);color:var(--blue);}
+.badge-gray{background:var(--surface2);color:var(--muted);}
+
+/* ── STOCK BAR ── */
+.stock-bar-wrap{display:flex;align-items:center;gap:8px;min-width:120px;}
+.stock-bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.stock-fill{height:100%;border-radius:3px;transition:width .3s;}
+.stock-num{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;white-space:nowrap;}
+
+/* ── FORMS ── */
+.form-grid{display:grid;gap:12px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;}
+.fg input,.fg select,.fg textarea{background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--ink);padding:8px 11px;font-size:13px;font-family:'Mulish',sans-serif;transition:border .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--amber);background:#fff;}
+.fg textarea{resize:vertical;min-height:60px;}
+.fg .hint{font-size:10px;color:var(--muted);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+.modal{background:var(--surface);border-radius:14px;width:560px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-md);}
+.modal-lg{width:700px;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-header h2{font-family:'Fraunces',serif;font-size:18px;font-weight:600;}
+.modal-header p{font-size:11px;color:var(--muted);margin-top:2px;}
+.modal-close{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:5px;}
+.modal-close:hover{color:var(--ink);background:var(--surface2);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.fi{background:var(--surface);border:1.5px solid var(--border);border-radius:7px;color:var(--ink);padding:6px 11px;font-size:12px;font-family:'Mulish',sans-serif;}
+.fi:focus{outline:none;border-color:var(--amber);}
+
+/* ── CRITICAL ITEM ── */
+.crit-row td{font-weight:600;}
+.crit-row td:first-child::before{content:'⚠ ';color:var(--red);}
+
+/* ── MOVEMENT CHIP ── */
+.mv-in{color:var(--green);font-weight:700;}
+.mv-out{color:var(--red);font-weight:700;}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:10px;opacity:.5;}
+.empty-title{font-family:'Fraunces',serif;font-size:16px;color:var(--ink2);margin-bottom:4px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#f5f0e8;padding:10px 18px;border-radius:8px;font-weight:600;font-size:12px;z-index:500;transform:translateY(60px);opacity:0;transition:all .3s;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ── TAB PANEL ── */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── REPORT TABLE ── */
+.rep-section{margin-bottom:24px;}
+.rep-section-title{font-family:'Fraunces',serif;font-size:14px;font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--amber);color:var(--amber-dark);}
+.rep-total-row td{font-weight:700;background:var(--surface2)!important;border-top:2px solid var(--border);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <span class="header-icon">📦</span>
+    <span class="header-title">Inventario</span>
+  </div>
+  <div class="header-sep"></div>
+  <span class="header-sub">Control de Materiales y Repuestos</span>
+  <div class="header-space"></div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportReport()">⬇ Exportar Excel</button>
+    <button class="btn btn-ghost" style="border-color:rgba(255,255,255,.3);color:#c8e8d8;font-weight:600" onclick="descargarConDatos()">💾 Guardar</button>
+    <button class="btn btn-amber" onclick="openModal('mMovimiento')">+ Registrar Movimiento</button>
+  </div>
+
+</div>
+
+<div id="loading-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(28,56,41,.95);color:#c8e8d8;padding:12px 24px;font-size:.8rem;align-items:center;justify-content:center;gap:10px">
+  <span style="animation:spin 1s linear infinite;display:inline-block">⏳</span>
+  Cargando inventario desde la nube…
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Navegación</div>
+      <div class="nav-item active" onclick="navTo('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="navTo('criticos',this)"><span class="nav-icon">🔴</span> Repuestos Críticos <span class="nav-badge" id="badgeCrit">0</span></div>
+      <div class="nav-item" onclick="navTo('materiales',this)"><span class="nav-icon">🔧</span> Materiales</div>
+      <div class="nav-item" onclick="navTo('movimientos',this)"><span class="nav-icon">🔄</span> Movimientos</div>
+      <div class="nav-item" onclick="navTo('reporte',this)"><span class="nav-icon">📋</span> Reporte de Costos</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Resumen</div>
+      <div class="stat-mini"><span class="stat-mini-label">Total ítems</span><span class="stat-mini-val" id="sbTotal">0</span></div>
+      <div class="stat-mini"><span class="stat-mini-label">Stock bajo</span><span class="stat-mini-val red" id="sbBajo">0</span></div>
+      <div class="stat-mini"><span class="stat-mini-val amber" id="sbMov">0</span><span class="stat-mini-label">Movimientos hoy</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Acciones rápidas</div>
+      <button class="btn btn-ink" style="width:100%;margin-bottom:6px;justify-content:center" onclick="openModal('mMaterial')">+ Nuevo Material</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openModal('mMovimiento')">+ Movimiento</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-panel active">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard <span>General</span></div><div class="page-desc">Vista rápida del estado del inventario</div></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-icon">📦</div><div class="kpi-val" id="kTotal">0</div><div class="kpi-label">Ítems registrados</div></div>
+        <div class="kpi-card"><div class="kpi-icon">⚠️</div><div class="kpi-val red" id="kBajo">0</div><div class="kpi-label">Stock crítico bajo</div></div>
+        <div class="kpi-card"><div class="kpi-icon">💸</div><div class="kpi-val amber" id="kCosto">S/ 0</div><div class="kpi-label">Costo total salidas</div></div>
+        <div class="kpi-card"><div class="kpi-icon">🔄</div><div class="kpi-val green" id="kMov">0</div><div class="kpi-label">Movimientos totales</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠ Stock bajo — Críticos</span></div>
+          <div class="card-body"><div style="overflow-x:auto"><table class="tbl" id="dashCritTable"><tbody></tbody></table></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🕐 Últimos movimientos</span></div>
+          <div class="card-body"><div style="overflow-x:auto"><table class="tbl" id="dashMovTable"><tbody></tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRÍTICOS -->
+    <div id="tab-criticos" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Repuestos <span>Críticos</span></div><div class="page-desc">Ítems de alta prioridad — monitoreo constante de stock</div></div>
+        <button class="btn btn-amber" onclick="openModal('mMaterial','critico')">+ Agregar Crítico</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Catálogo de Críticos</span>
+          <div class="filters">
+            <input class="fi" type="text" id="fCritSearch" placeholder="🔍 Buscar..." oninput="renderCriticos()">
+          </div>
+        </div>
+        <div class="card-body"><div style="overflow-x:auto"><table class="tbl" id="critTable">
+          <thead><tr><th>CÓDIGO</th><th>NOMBRE</th><th>CATEGORÍA</th><th>STOCK</th><th>MÍN.</th><th>ESTADO</th><th>COSTO UNIT.</th><th></th></tr></thead>
+          <tbody id="critBody"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- MATERIALES -->
+    <div id="tab-materiales" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Materiales <span>Convencionales</span></div><div class="page-desc">Inventario general de materiales de uso frecuente</div></div>
+        <button class="btn btn-ink" onclick="openModal('mMaterial','normal')">+ Nuevo Material</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Catálogo General</span>
+          <div class="filters">
+            <input class="fi" type="text" id="fMatSearch" placeholder="🔍 Buscar..." oninput="renderMateriales()">
+            <select class="fi" id="fMatCat" onchange="renderMateriales()"><option value="">Todas las categorías</option></select>
+          </div>
+        </div>
+        <div class="card-body"><div style="overflow-x:auto"><table class="tbl" id="matTable">
+          <thead><tr><th>CÓDIGO</th><th>NOMBRE</th><th>CATEGORÍA</th><th>STOCK</th><th>MÍN.</th><th>ESTADO</th><th>COSTO UNIT.</th><th></th></tr></thead>
+          <tbody id="matBody"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- MOVIMIENTOS -->
+    <div id="tab-movimientos" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Registro de <span>Movimientos</span></div><div class="page-desc">Entradas y salidas de materiales</div></div>
+        <button class="btn btn-amber" onclick="openModal('mMovimiento')">+ Registrar</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Historial</span>
+          <div class="filters">
+            <input class="fi" type="text" id="fMovSearch" placeholder="🔍 Buscar..." oninput="renderMovimientos()">
+            <select class="fi" id="fMovTipo" onchange="renderMovimientos()"><option value="">Todo tipo</option><option value="ENTRADA">Entrada</option><option value="SALIDA">Salida</option></select>
+            <select class="fi" id="fMovTech" onchange="renderMovimientos()"><option value="">Todos los técnicos</option></select>
+            <select class="fi" id="fMovTienda" onchange="renderMovimientos()"><option value="">Todas las tiendas</option></select>
+            <input class="fi" type="date" id="fMovFecha" onchange="renderMovimientos()">
+          </div>
+        </div>
+        <div class="card-body"><div style="overflow-x:auto"><table class="tbl" id="movTable">
+          <thead><tr><th>FECHA</th><th>TIPO</th><th>MATERIAL</th><th>CANT.</th><th>TÉCNICO</th><th>TIENDA</th><th># OT</th><th>COSTO UNIT.</th><th>COSTO TOTAL</th><th></th></tr></thead>
+          <tbody id="movBody"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- REPORTE -->
+    <div id="tab-reporte" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Reporte de <span>Costos</span></div><div class="page-desc">Análisis de costos por técnico y tienda</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="fi" type="date" id="rFechaIni" onchange="renderReporte()">
+          <span style="color:var(--muted);font-size:12px">a</span>
+          <input class="fi" type="date" id="rFechaFin" onchange="renderReporte()">
+          <button class="btn btn-amber" onclick="exportReport()">⬇ Exportar Excel</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">💰 Costo por Técnico</span></div>
+          <div class="card-body"><table class="tbl" id="repTechTable"><tbody></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏪 Costo por Tienda</span></div>
+          <div class="card-body"><table class="tbl" id="repStoreTable"><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📦 Costo por Material</span></div>
+        <div class="card-body"><table class="tbl" id="repMatTable">
+          <thead><tr><th>MATERIAL</th><th>TIPO</th><th>UNIDADES SALIDAS</th><th>COSTO UNIT.</th><th>COSTO TOTAL</th></tr></thead>
+          <tbody id="repMatBody"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📋 Stock actual vs Mínimo</span></div>
+        <div class="card-body"><table class="tbl" id="repStockTable">
+          <thead><tr><th>CÓDIGO</th><th>MATERIAL</th><th>TIPO</th><th>STOCK ACTUAL</th><th>MÍNIMO</th><th>ESTADO</th></tr></thead>
+          <tbody id="repStockBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── MODAL: NUEVO MATERIAL ── -->
+<div class="modal-overlay" id="mMaterial" style="display:none" onclick="if(event.target===this)closeModal('mMaterial')">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h2 id="mMatTitle">Nuevo Material</h2><p id="mMatSub">Complete los datos del ítem</p></div>
+      <button class="modal-close" onclick="closeModal('mMaterial')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="fg"><label>Código</label><input type="text" id="mCodigo" placeholder="Ej: REP-001"></div>
+          <div class="fg"><label>Tipo</label>
+            <select id="mTipo">
+              <option value="critico">🔴 Repuesto Crítico</option>
+              <option value="normal">🔧 Material Convencional</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label>Nombre del material *</label><input type="text" id="mNombre" placeholder="Ej: Termostato universal 220V"></div>
+        <div class="form-row">
+          <div class="fg"><label>Categoría</label><input type="text" id="mCategoria" placeholder="Ej: Refrigeración, Eléctrico..."></div>
+          <div class="fg"><label>Unidad</label><select id="mUnidad"><option>unidad</option><option>caja</option><option>metro</option><option>kg</option><option>litro</option><option>par</option><option>rollo</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Stock inicial</label><input type="number" id="mStock" value="0" min="0"></div>
+          <div class="fg"><label>Stock mínimo</label><input type="number" id="mMin" value="2" min="0"><div class="hint">Alerta cuando llegue a este nivel</div></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Costo unitario (S/)</label><input type="number" id="mCostoUnit" value="0" step="0.01" min="0"></div>
+          <div class="fg"><label>Proveedor</label><input type="text" id="mProveedor" placeholder="Nombre del proveedor"></div>
+        </div>
+        <div class="fg"><label>Notas</label><textarea id="mNotas" placeholder="Observaciones, especificaciones técnicas..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('mMaterial')">Cancelar</button>
+      <button class="btn btn-amber" onclick="saveMaterial()">Guardar Material</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: MOVIMIENTO ── -->
+<div class="modal-overlay" id="mMovimiento" style="display:none" onclick="if(event.target===this)closeModal('mMovimiento')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div><h2>Registrar Movimiento</h2><p>Entrada o salida de material del inventario</p></div>
+      <button class="modal-close" onclick="closeModal('mMovimiento')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="fg"><label>Tipo de movimiento *</label>
+            <select id="mvTipo" onchange="toggleMovFields()">
+              <option value="SALIDA">⬆ Salida (uso de material)</option>
+              <option value="ENTRADA">⬇ Entrada (reposición)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Fecha *</label><input type="date" id="mvFecha"></div>
+        </div>
+        <div class="fg"><label>Material *</label>
+          <select id="mvMaterial" onchange="updateMovCosto()">
+            <option value="">— Selecciona un material —</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Cantidad *</label><input type="number" id="mvCantidad" value="1" min="1" onchange="updateMovCosto()"></div>
+          <div class="fg"><label>Costo unitario (S/) *</label><input type="number" id="mvCosto" value="0" step="0.01" min="0" onchange="updateMovCostoTotal()"></div>
+        </div>
+        <div style="background:var(--amber-light);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--amber-dark);font-weight:700">Costo total del movimiento</span>
+          <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--amber)" id="mvCostoTotal">S/ 0.00</span>
+        </div>
+        <div id="mvSalidaFields">
+          <div class="form-row" style="margin-bottom:12px">
+            <div class="fg"><label>Técnico</label>
+              <select id="mvTecnico">
+                <option value="">— Sin técnico —</option>
+                <option>WILLY</option><option>YERSON</option><option>JOSE</option><option>JESUS</option><option>JHON</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tienda destino</label><input type="text" id="mvTienda" placeholder="Ej: Plaza Norte, Mall del Sur..."></div>
+          </div>
+          <div class="form-row">
+            <div class="fg"><label># OT relacionada</label><input type="text" id="mvOT" placeholder="Ej: 3245"></div>
+            <div class="fg"><label>Notas</label><input type="text" id="mvNotas" placeholder="Observación opcional"></div>
+          </div>
+        </div>
+        <div id="mvEntradaFields" style="display:none">
+          <div class="form-row">
+            <div class="fg"><label>Proveedor / Origen</label><input type="text" id="mvProveedor" placeholder="Ej: Ferretería Lima, Almacén central..."></div>
+            <div class="fg"><label>Notas</label><input type="text" id="mvNotasE" placeholder="Nro. factura, lote..."></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('mMovimiento')">Cancelar</button>
+      <button class="btn btn-amber" onclick="saveMovimiento()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: EDITAR MATERIAL ── -->
+<div class="modal-overlay" id="mEditMat" style="display:none" onclick="if(event.target===this)closeModal('mEditMat')">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h2>Editar Material</h2><p id="mEditSub"></p></div>
+      <button class="modal-close" onclick="closeModal('mEditMat')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <input type="hidden" id="eMatId">
+        <div class="form-row">
+          <div class="fg"><label>Código</label><input type="text" id="eCodigo"></div>
+          <div class="fg"><label>Tipo</label><select id="eTipo"><option value="critico">🔴 Repuesto Crítico</option><option value="normal">🔧 Material Convencional</option></select></div>
+        </div>
+        <div class="fg"><label>Nombre *</label><input type="text" id="eNombre"></div>
+        <div class="form-row">
+          <div class="fg"><label>Categoría</label><input type="text" id="eCategoria"></div>
+          <div class="fg"><label>Unidad</label><select id="eUnidad"><option>unidad</option><option>caja</option><option>metro</option><option>kg</option><option>litro</option><option>par</option><option>rollo</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Stock actual</label><input type="number" id="eStock" min="0"></div>
+          <div class="fg"><label>Stock mínimo</label><input type="number" id="eMin" min="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Costo unitario (S/)</label><input type="number" id="eCostoUnit" step="0.01" min="0"></div>
+          <div class="fg"><label>Proveedor</label><input type="text" id="eProveedor"></div>
+        </div>
+        <div class="fg"><label>Notas</label><textarea id="eNotas"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red btn-sm" onclick="deleteMaterial()">🗑 Eliminar</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" onclick="closeModal('mEditMat')">Cancelar</button>
+      <button class="btn btn-amber" onclick="updateMaterial()">Actualizar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+var materials = [];
+var movements = [];
+var nextMatId = 1;
+var nextMovId = 1;
+
+// ── GITHUB CONFIG ──
+var GH_USER  = 'danielhtk10-cmd';
+var GH_REPO  = 'inventario-mantenimiento';
+var GH_TOKEN = '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';
+var GH_FILE  = 'datos.json';
+var GH_SHA   = null; // se llena al cargar
+
+// Cargar datos desde GitHub al iniciar
+function cargarDesdeGitHub(){
+  mostrarCargando(true);
+  fetch('https://api.github.com/repos/'+GH_USER+'/'+GH_REPO+'/contents/'+GH_FILE,{
+    headers:{
+      'Authorization':'token '+GH_TOKEN,
+      'Accept':'application/vnd.github.v3+json'
+    }
+  })
+  .then(function(r){
+    if(r.status===404){
+      // Archivo no existe aún — empezar vacío
+      mostrarCargando(false);
+      if(materials.length===0) loadSampleData();
+      renderAll();
+      return null;
+    }
+    return r.json();
+  })
+  .then(function(data){
+    if(!data) return;
+    GH_SHA = data.sha;
+    var decoded = JSON.parse(atob(data.content.replace(/\n/g,'')));
+    if(decoded.materials && decoded.materials.length>0){
+      materials = decoded.materials;
+      movements = decoded.movements || [];
+      nextMatId = decoded.nextMatId || (Math.max.apply(null,materials.map(function(m){return m.id;}))+1);
+      nextMovId = decoded.nextMovId || (movements.length>0?Math.max.apply(null,movements.map(function(m){return m.id;}))+1:1);
+    } else {
+      if(materials.length===0) loadSampleData();
+    }
+    mostrarCargando(false);
+    renderAll();
+  })
+  .catch(function(){
+    mostrarCargando(false);
+    if(materials.length===0) loadSampleData();
+    renderAll();
+    showToast('⚠️ Sin conexión — mostrando datos locales');
+  });
+}
+
+function mostrarCargando(show){
+  var el = document.getElementById('loading-bar');
+  if(el) el.style.display = show ? 'flex' : 'none';
+}
+
+var TECHS = ['WILLY','YERSON','JOSE','JESUS','JHON'];
+
+// ── SAMPLE DATA ──
+function loadSampleData(){
+  var samples = [
+    {tipo:'critico',codigo:'REP-001',nombre:'Termostato universal 220V',categoria:'Refrigeración',unidad:'unidad',stock:3,minStock:5,costoUnit:45.00,proveedor:'Frío Parts SAC',notas:'Para equipos de refrigeración comercial'},
+    {tipo:'critico',codigo:'REP-002',nombre:'Compresor Embraco 1/5 HP',categoria:'Refrigeración',unidad:'unidad',stock:1,minStock:2,costoUnit:380.00,proveedor:'Frío Parts SAC',notas:''},
+    {tipo:'critico',codigo:'REP-003',nombre:'Tarjeta electrónica vitrina',categoria:'Electrónico',unidad:'unidad',stock:2,minStock:3,costoUnit:220.00,proveedor:'TechRepuestos',notas:'Compatible con Hussmann y True'},
+    {tipo:'critico',codigo:'REP-004',nombre:'Válvula solenoide 1/2"',categoria:'Refrigeración',unidad:'unidad',stock:6,minStock:4,costoUnit:55.00,proveedor:'Frío Parts SAC',notas:''},
+    {tipo:'normal',codigo:'MAT-001',nombre:'Cinta teflón 3/4"',categoria:'Gasfitería',unidad:'rollo',stock:18,minStock:5,costoUnit:2.50,proveedor:'Ferretería Lima',notas:''},
+    {tipo:'normal',codigo:'MAT-002',nombre:'Cable 2.5mm THW',categoria:'Eléctrico',unidad:'metro',stock:80,minStock:20,costoUnit:1.80,proveedor:'Indeco',notas:'Por metro'},
+    {tipo:'normal',codigo:'MAT-003',nombre:'Fusible 5A',categoria:'Eléctrico',unidad:'unidad',stock:30,minStock:10,costoUnit:0.80,proveedor:'Ferretería Lima',notas:''},
+    {tipo:'normal',codigo:'MAT-004',nombre:'Gas refrigerante R404A',categoria:'Refrigeración',unidad:'kg',stock:4,minStock:3,costoUnit:35.00,proveedor:'Gas Andino',notas:''},
+    {tipo:'normal',codigo:'MAT-005',nombre:'Silicona selladora blanca',categoria:'Sellado',unidad:'unidad',stock:8,minStock:4,costoUnit:12.00,proveedor:'Ferretería Lima',notas:'300ml'},
+  ];
+  samples.forEach(function(s){
+    s.id = nextMatId++;
+    s.createdAt = new Date().toISOString().split('T')[0];
+    materials.push(s);
+  });
+  // Sample movements
+  var today = new Date().toISOString().split('T')[0];
+  var movSamples = [
+    {tipo:'SALIDA',materialId:1,cantidad:1,costoUnit:45,tecnico:'WILLY',tienda:'Plaza Norte',ot:'3201',notas:'',fecha:today},
+    {tipo:'SALIDA',materialId:5,cantidad:2,costoUnit:2.50,tecnico:'YERSON',tienda:'MegaPlaza',ot:'3198',notas:'',fecha:today},
+    {tipo:'ENTRADA',materialId:2,cantidad:2,costoUnit:380,tecnico:'',tienda:'',ot:'',notas:'Reposición mensual',fecha:today},
+    {tipo:'SALIDA',materialId:8,cantidad:0.5,costoUnit:35,tecnico:'JOSE',tienda:'Mall del Sur',ot:'3195',notas:'Carga de gas',fecha:today},
+  ];
+  movSamples.forEach(function(m){
+    m.id = nextMovId++;
+    m.costoTotal = m.cantidad * m.costoUnit;
+    movements.push(m);
+    // Update stock
+    var mat = materials.find(function(x){return x.id===m.materialId;});
+    if(mat){
+      if(m.tipo==='SALIDA')mat.stock=Math.max(0,mat.stock-m.cantidad);
+      else mat.stock+=m.cantidad;
+    }
+  });
+}
+// La carga se hace en cargarDesdeGitHub() al final
+
+// ── NAV ──
+function navTo(tab, el){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  el.classList.add('active');
+  if(tab==='dashboard')renderDashboard();
+  if(tab==='criticos')renderCriticos();
+  if(tab==='materiales')renderMateriales();
+  if(tab==='movimientos')renderMovimientos();
+  if(tab==='reporte')renderReporte();
+}
+
+// ── UTILS ──
+function fmtS(n){return 'S/ '+parseFloat(n||0).toFixed(2);}
+function today(){return new Date().toISOString().split('T')[0];}
+function fmtDate(d){if(!d)return '—';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+
+function stockStatus(mat){
+  if(mat.stock===0)return {label:'Sin stock',cls:'badge-red',icon:'🔴'};
+  if(mat.stock<=mat.minStock)return {label:'Bajo',cls:'badge-amber',icon:'⚠️'};
+  return {label:'OK',cls:'badge-green',icon:'✅'};
+}
+
+function getMat(id){return materials.find(function(m){return m.id===id;});}
+
+function stockBar(mat){
+  var pct = mat.minStock>0 ? Math.min(100, (mat.stock/Math.max(mat.stock,mat.minStock*2))*100) : 100;
+  var color = mat.stock===0?'var(--red)':mat.stock<=mat.minStock?'var(--amber)':'var(--green)';
+  return '<div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill" style="width:'+pct+'%;background:'+color+'"></div></div><span class="stock-num" style="color:'+color+'">'+mat.stock+' '+mat.unidad+'</span></div>';
+}
+
+function updateSidebar(){
+  var bajo = materials.filter(function(m){return m.stock<=m.minStock;}).length;
+  var movsToday = movements.filter(function(m){return m.fecha===today();}).length;
+  document.getElementById('sbTotal').textContent = materials.length;
+  document.getElementById('sbBajo').textContent = bajo;
+  document.getElementById('sbMov').textContent = movsToday;
+  document.getElementById('kTotal').textContent = materials.length;
+  document.getElementById('kBajo').textContent = bajo;
+  document.getElementById('kMov').textContent = movements.length;
+  var totalCost = movements.filter(function(m){return m.tipo==='SALIDA';}).reduce(function(s,m){return s+m.costoTotal;},0);
+  document.getElementById('kCosto').textContent = fmtS(totalCost);
+  var critBajo = materials.filter(function(m){return m.tipo==='critico'&&m.stock<=m.minStock;}).length;
+  var badge = document.getElementById('badgeCrit');
+  badge.textContent = critBajo;
+  badge.style.display = critBajo>0?'':'none';
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  updateSidebar();
+  // Critical low stock
+  var bajo = materials.filter(function(m){return m.stock<=m.minStock;}).sort(function(a,b){return a.stock-b.stock;});
+  var ct = document.querySelector('#dashCritTable tbody');
+  if(!bajo.length){ct.innerHTML='<tr><td colspan="3"><div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Todo en orden</div></div></td></tr>';return;}
+  ct.innerHTML = bajo.slice(0,8).map(function(m){
+    var st=stockStatus(m);
+    return '<tr><td><span class="badge '+(m.tipo==='critico'?'badge-red':'badge-amber')+'">'+m.codigo+'</span></td><td style="font-weight:600">'+m.nombre+'</td><td>'+stockBar(m)+'</td></tr>';
+  }).join('');
+  // Recent movements
+  var recent = movements.slice().reverse().slice(0,8);
+  var mt = document.querySelector('#dashMovTable tbody');
+  mt.innerHTML = recent.map(function(m){
+    var mat=getMat(m.materialId);
+    return '<tr><td class="'+(m.tipo==='SALIDA'?'mv-out':'mv-in')+'">'+(m.tipo==='SALIDA'?'↑ SALIDA':'↓ ENTRADA')+'</td><td style="font-weight:600">'+(mat?mat.nombre:'—')+'</td><td>×'+m.cantidad+'</td><td style="font-weight:600">'+fmtS(m.costoTotal)+'</td></tr>';
+  }).join('');
+}
+
+// ── CRITICOS ──
+function renderCriticos(){
+  updateSidebar();
+  var search = (document.getElementById('fCritSearch').value||'').toLowerCase();
+  var list = materials.filter(function(m){
+    return m.tipo==='critico' && (m.nombre.toLowerCase().includes(search)||m.codigo.toLowerCase().includes(search)||m.categoria.toLowerCase().includes(search));
+  });
+  var body = document.getElementById('critBody');
+  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No hay repuestos críticos</div></div></td></tr>';return;}
+  body.innerHTML = list.map(function(m){
+    var st=stockStatus(m);
+    var isCrit=m.stock<=m.minStock;
+    return '<tr class="'+(isCrit?'crit-row':'')+'"><td><code style="font-family:DM Mono,monospace;font-size:11px">'+m.codigo+'</code></td><td style="font-weight:700">'+m.nombre+'</td><td><span class="badge badge-gray">'+m.categoria+'</span></td><td>'+stockBar(m)+'</td><td style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">'+m.minStock+' '+m.unidad+'</td><td><span class="badge '+st.cls+'">'+st.icon+' '+st.label+'</span></td><td style="font-family:DM Mono,monospace;font-size:12px;font-weight:600">'+fmtS(m.costoUnit)+'</td><td><button class="btn btn-ghost btn-sm" onclick="editMaterial('+m.id+')">✏ Editar</button></td></tr>';
+  }).join('');
+}
+
+// ── MATERIALES ──
+function renderMateriales(){
+  updateSidebar();
+  var search = (document.getElementById('fMatSearch').value||'').toLowerCase();
+  var cat = document.getElementById('fMatCat').value;
+  var list = materials.filter(function(m){
+    return m.tipo==='normal'
+      && (!cat||m.categoria===cat)
+      && (m.nombre.toLowerCase().includes(search)||m.codigo.toLowerCase().includes(search)||m.categoria.toLowerCase().includes(search));
+  });
+  // Update category filter
+  var cats = [...new Set(materials.filter(function(m){return m.tipo==='normal';}).map(function(m){return m.categoria;}))].sort();
+  var catSel = document.getElementById('fMatCat');
+  var curCat = catSel.value;
+  catSel.innerHTML = '<option value="">Todas las categorías</option>' + cats.map(function(c){return '<option'+(c===curCat?' selected':'')+'>'+c+'</option>';}).join('');
+  var body = document.getElementById('matBody');
+  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔧</div><div class="empty-title">No hay materiales</div></div></td></tr>';return;}
+  body.innerHTML = list.map(function(m){
+    var st=stockStatus(m);
+    return '<tr><td><code style="font-family:DM Mono,monospace;font-size:11px">'+m.codigo+'</code></td><td style="font-weight:600">'+m.nombre+'</td><td><span class="badge badge-blue">'+m.categoria+'</span></td><td>'+stockBar(m)+'</td><td style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">'+m.minStock+' '+m.unidad+'</td><td><span class="badge '+st.cls+'">'+st.icon+' '+st.label+'</span></td><td style="font-family:DM Mono,monospace;font-size:12px;font-weight:600">'+fmtS(m.costoUnit)+'</td><td><button class="btn btn-ghost btn-sm" onclick="editMaterial('+m.id+')">✏ Editar</button></td></tr>';
+  }).join('');
+}
+
+// ── MOVIMIENTOS ──
+function renderMovimientos(){
+  var search = (document.getElementById('fMovSearch').value||'').toLowerCase();
+  var tipo = document.getElementById('fMovTipo').value;
+  var tech = document.getElementById('fMovTech').value;
+  var tienda = document.getElementById('fMovTienda').value;
+  var fecha = document.getElementById('fMovFecha').value;
+  // Populate tech/tienda filters
+  var techs = [...new Set(movements.filter(function(m){return m.tecnico;}).map(function(m){return m.tecnico;}))].sort();
+  var tiendas = [...new Set(movements.filter(function(m){return m.tienda;}).map(function(m){return m.tienda;}))].sort();
+  var ts = document.getElementById('fMovTech'); var tsCur = ts.value;
+  ts.innerHTML = '<option value="">Todos los técnicos</option>' + techs.map(function(t){return '<option'+(t===tsCur?' selected':'')+'>'+t+'</option>';}).join('');
+  var ti = document.getElementById('fMovTienda'); var tiCur = ti.value;
+  ti.innerHTML = '<option value="">Todas las tiendas</option>' + tiendas.map(function(t){return '<option'+(t===tiCur?' selected':'')+'>'+t+'</option>';}).join('');
+  var list = movements.slice().reverse().filter(function(m){
+    var mat=getMat(m.materialId);
+    var name=(mat?mat.nombre:'').toLowerCase();
+    if(search&&!name.includes(search)&&!(m.tecnico||'').toLowerCase().includes(search)&&!(m.tienda||'').toLowerCase().includes(search)&&!(m.ot||'').includes(search))return false;
+    if(tipo&&m.tipo!==tipo)return false;
+    if(tech&&m.tecnico!==tech)return false;
+    if(tienda&&m.tienda!==tienda)return false;
+    if(fecha&&m.fecha!==fecha)return false;
+    return true;
+  });
+  var body = document.getElementById('movBody');
+  if(!list.length){body.innerHTML='<tr><td colspan="10"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-title">Sin movimientos</div></div></td></tr>';return;}
+  body.innerHTML = list.map(function(m){
+    var mat=getMat(m.materialId);
+    return '<tr><td style="font-family:DM Mono,monospace;font-size:11px;white-space:nowrap">'+fmtDate(m.fecha)+'</td>'
+      +'<td><span class="badge '+(m.tipo==='SALIDA'?'badge-red':'badge-green')+'">'+m.tipo+'</span></td>'
+      +'<td style="font-weight:600">'+(mat?mat.nombre:'—')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;text-align:center">'+m.cantidad+' '+(mat?mat.unidad:'')+'</td>'
+      +'<td>'+(m.tecnico?'<span class="badge badge-gray">'+m.tecnico+'</span>':'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="font-size:11px">'+(m.tienda||'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:11px">'+(m.ot?'#'+m.ot:'—')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px">'+fmtS(m.costoUnit)+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px;font-weight:700">'+fmtS(m.costoTotal)+'</td>'
+      +'<td><button class="btn btn-ghost btn-sm" onclick="deleteMovimiento('+m.id+')" style="color:var(--red);border-color:rgba(192,57,43,.3)" title="Eliminar">✕</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── REPORTE ──
+function renderReporte(){
+  var ini = document.getElementById('rFechaIni').value;
+  var fin = document.getElementById('rFechaFin').value;
+  var salidas = movements.filter(function(m){
+    if(m.tipo!=='SALIDA')return false;
+    if(ini&&m.fecha<ini)return false;
+    if(fin&&m.fecha>fin)return false;
+    return true;
+  });
+  // By tech
+  var byTech = {};
+  TECHS.forEach(function(t){byTech[t]=0;});
+  salidas.forEach(function(m){if(m.tecnico)byTech[m.tecnico]=(byTech[m.tecnico]||0)+m.costoTotal;});
+  var totalTech = Object.values(byTech).reduce(function(s,v){return s+v;},0);
+  document.querySelector('#repTechTable tbody').innerHTML =
+    '<tr><th style="background:var(--surface2)">TÉCNICO</th><th style="background:var(--surface2);text-align:right">COSTO TOTAL</th></tr>'
+    + Object.entries(byTech).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+      var pct = totalTech>0?(e[1]/totalTech*100).toFixed(1):0;
+      return '<tr><td><span class="badge badge-gray">'+e[0]+'</span></td><td style="text-align:right;font-family:DM Mono,monospace;font-weight:700;font-size:13px">'+fmtS(e[1])+'<span style="font-size:10px;color:var(--muted);margin-left:5px">'+pct+'%</span></td></tr>';
+    }).join('')
+    + '<tr class="rep-total-row"><td>TOTAL</td><td style="text-align:right;font-family:DM Mono,monospace">'+fmtS(totalTech)+'</td></tr>';
+  // By store
+  var byStore = {};
+  salidas.forEach(function(m){if(m.tienda)byStore[m.tienda]=(byStore[m.tienda]||0)+m.costoTotal;});
+  var totalStore = Object.values(byStore).reduce(function(s,v){return s+v;},0);
+  document.querySelector('#repStoreTable tbody').innerHTML =
+    '<tr><th style="background:var(--surface2)">TIENDA</th><th style="background:var(--surface2);text-align:right">COSTO TOTAL</th></tr>'
+    + (Object.keys(byStore).length ? Object.entries(byStore).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+      var pct = totalStore>0?(e[1]/totalStore*100).toFixed(1):0;
+      return '<tr><td style="font-size:12px;font-weight:600">'+e[0]+'</td><td style="text-align:right;font-family:DM Mono,monospace;font-weight:700">'+fmtS(e[1])+'<span style="font-size:10px;color:var(--muted);margin-left:5px">'+pct+'%</span></td></tr>';
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--muted);padding:18px">Sin datos</td></tr>')
+    + (totalStore>0?'<tr class="rep-total-row"><td>TOTAL</td><td style="text-align:right;font-family:DM Mono,monospace">'+fmtS(totalStore)+'</td></tr>':'');
+  // By material
+  var byMat = {};
+  salidas.forEach(function(m){
+    if(!byMat[m.materialId])byMat[m.materialId]={qty:0,cost:0};
+    byMat[m.materialId].qty+=m.cantidad; byMat[m.materialId].cost+=m.costoTotal;
+  });
+  document.getElementById('repMatBody').innerHTML = Object.keys(byMat).length ? Object.entries(byMat).sort(function(a,b){return b[1].cost-a[1].cost;}).map(function(e){
+    var mat=getMat(parseInt(e[0]));
+    return '<tr><td style="font-weight:600">'+(mat?mat.nombre:'—')+'</td><td><span class="badge '+(mat&&mat.tipo==='critico'?'badge-red':'badge-blue')+'">'+(mat?mat.tipo:'')+' </span></td><td style="text-align:center;font-family:DM Mono,monospace">'+e[1].qty.toFixed(2)+'</td><td style="text-align:right;font-family:DM Mono,monospace">'+fmtS(e[1].cost/e[1].qty)+'</td><td style="text-align:right;font-family:DM Mono,monospace;font-weight:700">'+fmtS(e[1].cost)+'</td></tr>';
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Sin datos</td></tr>';
+  // Stock vs min
+  document.getElementById('repStockBody').innerHTML = materials.map(function(m){
+    var st=stockStatus(m);
+    return '<tr><td><code style="font-family:DM Mono,monospace;font-size:11px">'+m.codigo+'</code></td><td style="font-weight:600">'+m.nombre+'</td><td><span class="badge '+(m.tipo==='critico'?'badge-red':'badge-blue')+'">'+m.tipo+'</span></td><td>'+stockBar(m)+'</td><td style="font-family:DM Mono,monospace;text-align:center">'+m.minStock+'</td><td><span class="badge '+st.cls+'">'+st.icon+' '+st.label+'</span></td></tr>';
+  }).join('');
+}
+
+// ── MODAL: MATERIAL ──
+function openModal(id, tipo){
+  if(id==='mMaterial'){
+    document.getElementById('mCodigo').value='';
+    document.getElementById('mTipo').value=tipo||'normal';
+    document.getElementById('mNombre').value='';
+    document.getElementById('mCategoria').value='';
+    document.getElementById('mUnidad').value='unidad';
+    document.getElementById('mStock').value='0';
+    document.getElementById('mMin').value='2';
+    document.getElementById('mCostoUnit').value='0';
+    document.getElementById('mProveedor').value='';
+    document.getElementById('mNotas').value='';
+    document.getElementById('mMatTitle').textContent=tipo==='critico'?'Nuevo Repuesto Crítico':'Nuevo Material';
+  }
+  if(id==='mMovimiento'){
+    document.getElementById('mvFecha').value=today();
+    document.getElementById('mvTipo').value='SALIDA';
+    document.getElementById('mvCantidad').value='1';
+    document.getElementById('mvCosto').value='0';
+    document.getElementById('mvCostoTotal').textContent='S/ 0.00';
+    document.getElementById('mvTecnico').value='';
+    document.getElementById('mvTienda').value='';
+    document.getElementById('mvOT').value='';
+    document.getElementById('mvNotas').value='';
+    document.getElementById('mvProveedor').value='';
+    document.getElementById('mvNotasE').value='';
+    // Populate material select
+    var sel=document.getElementById('mvMaterial');
+    sel.innerHTML='<option value="">— Selecciona un material —</option>';
+    materials.sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(m){
+      sel.innerHTML+='<option value="'+m.id+'">'+(m.tipo==='critico'?'🔴 ':'🔧 ')+m.nombre+' (Stock: '+m.stock+')</option>';
+    });
+    toggleMovFields();
+  }
+  document.getElementById(id).style.display='flex';
+}
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+function toggleMovFields(){
+  var tipo=document.getElementById('mvTipo').value;
+  document.getElementById('mvSalidaFields').style.display=tipo==='SALIDA'?'block':'none';
+  document.getElementById('mvEntradaFields').style.display=tipo==='ENTRADA'?'block':'none';
+}
+
+function updateMovCosto(){
+  var matId=parseInt(document.getElementById('mvMaterial').value);
+  var mat=getMat(matId);
+  if(mat&&mat.costoUnit)document.getElementById('mvCosto').value=mat.costoUnit;
+  updateMovCostoTotal();
+}
+function updateMovCostoTotal(){
+  var cant=parseFloat(document.getElementById('mvCantidad').value)||0;
+  var cost=parseFloat(document.getElementById('mvCosto').value)||0;
+  document.getElementById('mvCostoTotal').textContent=fmtS(cant*cost);
+}
+
+function saveMaterial(){
+  var nombre=document.getElementById('mNombre').value.trim();
+  if(!nombre){showToast('⚠️ El nombre es obligatorio');return;}
+  var mat={
+    id:nextMatId++,
+    tipo:document.getElementById('mTipo').value,
+    codigo:document.getElementById('mCodigo').value.trim()||('MAT-'+(nextMatId-1).toString().padStart(3,'0')),
+    nombre:nombre,
+    categoria:document.getElementById('mCategoria').value.trim()||'General',
+    unidad:document.getElementById('mUnidad').value,
+    stock:parseFloat(document.getElementById('mStock').value)||0,
+    minStock:parseFloat(document.getElementById('mMin').value)||0,
+    costoUnit:parseFloat(document.getElementById('mCostoUnit').value)||0,
+    proveedor:document.getElementById('mProveedor').value.trim(),
+    notas:document.getElementById('mNotas').value.trim(),
+    createdAt:today()
+  };
+  materials.push(mat);
+  closeModal('mMaterial');
+  updateSidebar();
+  if(mat.tipo==='critico')renderCriticos();else renderMateriales();
+  showToast('✅ Material "'+mat.nombre+'" agregado');
+}
+
+function editMaterial(id){
+  var m=getMat(id);if(!m)return;
+  document.getElementById('eMatId').value=m.id;
+  document.getElementById('eCodigo').value=m.codigo;
+  document.getElementById('eTipo').value=m.tipo;
+  document.getElementById('eNombre').value=m.nombre;
+  document.getElementById('eCategoria').value=m.categoria;
+  document.getElementById('eUnidad').value=m.unidad;
+  document.getElementById('eStock').value=m.stock;
+  document.getElementById('eMin').value=m.minStock;
+  document.getElementById('eCostoUnit').value=m.costoUnit;
+  document.getElementById('eProveedor').value=m.proveedor||'';
+  document.getElementById('eNotas').value=m.notas||'';
+  document.getElementById('mEditSub').textContent=m.codigo+' · '+m.nombre;
+  document.getElementById('mEditMat').style.display='flex';
+}
+
+function updateMaterial(){
+  var id=parseInt(document.getElementById('eMatId').value);
+  var m=getMat(id);if(!m)return;
+  m.codigo=document.getElementById('eCodigo').value.trim();
+  m.tipo=document.getElementById('eTipo').value;
+  m.nombre=document.getElementById('eNombre').value.trim();
+  m.categoria=document.getElementById('eCategoria').value.trim();
+  m.unidad=document.getElementById('eUnidad').value;
+  m.stock=parseFloat(document.getElementById('eStock').value)||0;
+  m.minStock=parseFloat(document.getElementById('eMin').value)||0;
+  m.costoUnit=parseFloat(document.getElementById('eCostoUnit').value)||0;
+  m.proveedor=document.getElementById('eProveedor').value.trim();
+  m.notas=document.getElementById('eNotas').value.trim();
+  closeModal('mEditMat');
+  updateSidebar();renderCriticos();renderMateriales();
+  showToast('✅ Material actualizado');
+}
+
+function deleteMaterial(){
+  var id=parseInt(document.getElementById('eMatId').value);
+  if(!confirm('¿Eliminar este material? Los movimientos asociados se conservarán.'))return;
+  materials=materials.filter(function(m){return m.id!==id;});
+  closeModal('mEditMat');
+  updateSidebar();renderCriticos();renderMateriales();
+  showToast('🗑 Material eliminado');
+}
+
+function saveMovimiento(){
+  var matId=parseInt(document.getElementById('mvMaterial').value);
+  var mat=getMat(matId);
+  if(!mat){showToast('⚠️ Selecciona un material');return;}
+  var cant=parseFloat(document.getElementById('mvCantidad').value)||0;
+  if(cant<=0){showToast('⚠️ Ingresa una cantidad válida');return;}
+  var tipo=document.getElementById('mvTipo').value;
+  var costoUnit=parseFloat(document.getElementById('mvCosto').value)||0;
+  var mov={
+    id:nextMovId++,
+    tipo:tipo,
+    materialId:matId,
+    cantidad:cant,
+    costoUnit:costoUnit,
+    costoTotal:cant*costoUnit,
+    fecha:document.getElementById('mvFecha').value||today(),
+    tecnico:tipo==='SALIDA'?document.getElementById('mvTecnico').value:'',
+    tienda:tipo==='SALIDA'?document.getElementById('mvTienda').value.trim():'',
+    ot:tipo==='SALIDA'?document.getElementById('mvOT').value.trim():'',
+    notas:tipo==='SALIDA'?document.getElementById('mvNotas').value.trim():document.getElementById('mvNotasE').value.trim(),
+    proveedor:tipo==='ENTRADA'?document.getElementById('mvProveedor').value.trim():''
+  };
+  if(tipo==='SALIDA'){
+    if(mat.stock<cant){showToast('⚠️ Stock insuficiente (disponible: '+mat.stock+' '+mat.unidad+')');return;}
+    mat.stock=Math.round((mat.stock-cant)*100)/100;
+  }else{
+    mat.stock=Math.round((mat.stock+cant)*100)/100;
+  }
+  movements.push(mov);
+  closeModal('mMovimiento');
+  updateSidebar();renderMovimientos();renderDashboard();
+  showToast((tipo==='SALIDA'?'📤':'📥')+' Movimiento registrado · '+fmtS(mov.costoTotal));
+}
+
+function deleteMovimiento(id){
+  if(!confirm('¿Eliminar este movimiento?'))return;
+  var mov=movements.find(function(m){return m.id===id;});
+  if(!mov)return;
+  var mat=getMat(mov.materialId);
+  if(mat){
+    if(mov.tipo==='SALIDA')mat.stock=Math.round((mat.stock+mov.cantidad)*100)/100;
+    else mat.stock=Math.max(0,Math.round((mat.stock-mov.cantidad)*100)/100);
+  }
+  movements=movements.filter(function(m){return m.id!==id;});
+  renderMovimientos();updateSidebar();
+  showToast('🗑 Movimiento eliminado');
+}
+
+// ── EXPORT ──
+function exportReport(){
+  var wb={SheetNames:[],Sheets:{}};
+  var border={style:'thin',color:{rgb:'FFD1CCC4'}};
+  var B={top:border,bottom:border,left:border,right:border};
+  function st(bg,txt,bold,sz,wrap){return{fill:{fgColor:{rgb:bg||'FFFFFFFF'}},font:{bold:!!bold,color:{rgb:txt||'FF1C1A17'},sz:sz||10,name:'Calibri'},alignment:{horizontal:'left',vertical:'center',wrapText:!!wrap},border:B};}
+  function ce(ws,r,c,v,style){var a=XLSX.utils.encode_cell({r:r,c:c});ws[a]={v:v===undefined?'':String(v),t:'s',s:style};}
+
+  // Sheet 1: Movimientos
+  var ws1={};
+  var h1=['FECHA','TIPO','MATERIAL','TIPO MAT.','CANTIDAD','UNIDAD','COSTO UNIT.','COSTO TOTAL','TÉCNICO','TIENDA','# OT','NOTAS'];
+  h1.forEach(function(v,i){ce(ws1,0,i,v,st('FF1C1A17','FFFFF5E6',true,10));});
+  movements.slice().reverse().forEach(function(m,ri){
+    var mat=getMat(m.materialId);
+    var bg=ri%2===0?'FFFFFFFF':'FFFAF8F4';
+    var row=[fmtDate(m.fecha),m.tipo,mat?mat.nombre:'—',mat?mat.tipo:'',m.cantidad,mat?mat.unidad:'','S/ '+parseFloat(m.costoUnit).toFixed(2),'S/ '+parseFloat(m.costoTotal).toFixed(2),m.tecnico||'',m.tienda||'',m.ot||'',m.notas||''];
+    row.forEach(function(v,ci){ce(ws1,ri+1,ci,v,st(bg,'FF1C1A17',false,10));});
+  });
+  ws1['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:movements.length,c:11}});
+  ws1['!cols']=[{wch:11},{wch:8},{wch:30},{wch:10},{wch:8},{wch:8},{wch:11},{wch:11},{wch:10},{wch:22},{wch:8},{wch:22}];
+  wb.SheetNames.push('Movimientos');wb.Sheets['Movimientos']=ws1;
+
+  // Sheet 2: Catálogo
+  var ws2={};
+  var h2=['CÓDIGO','NOMBRE','TIPO','CATEGORÍA','STOCK','UNIDAD','STOCK MÍN.','COSTO UNIT.','PROVEEDOR'];
+  h2.forEach(function(v,i){ce(ws2,0,i,v,st('FF1C1A17','FFFFF5E6',true,10));});
+  materials.forEach(function(m,ri){
+    var bg=m.stock<=m.minStock?'FFFDECEA':(ri%2===0?'FFFFFFFF':'FFFAF8F4');
+    [m.codigo,m.nombre,m.tipo,m.categoria,m.stock,m.unidad,m.minStock,'S/ '+parseFloat(m.costoUnit).toFixed(2),m.proveedor||''].forEach(function(v,ci){ce(ws2,ri+1,ci,v,st(bg,'FF1C1A17',false,10));});
+  });
+  ws2['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:materials.length,c:8}});
+  ws2['!cols']=[{wch:10},{wch:30},{wch:10},{wch:14},{wch:8},{wch:8},{wch:10},{wch:11},{wch:22}];
+  wb.SheetNames.push('Catálogo');wb.Sheets['Catálogo']=ws2;
+
+  // Sheet 3: Costos resumen
+  var ws3={};
+  var r3=0;
+  ce(ws3,r3,0,'RESUMEN DE COSTOS POR TÉCNICO',st('FFC8820A','FFFFFFFF',true,12));r3++;
+  ce(ws3,r3,0,'TÉCNICO',st('FF2C2924','FFFFF5E6',true,10));ce(ws3,r3,1,'COSTO TOTAL',st('FF2C2924','FFFFF5E6',true,10));r3++;
+  var byTech2={};TECHS.forEach(function(t){byTech2[t]=0;});
+  movements.filter(function(m){return m.tipo==='SALIDA';}).forEach(function(m){if(m.tecnico)byTech2[m.tecnico]=(byTech2[m.tecnico]||0)+m.costoTotal;});
+  var tT=0;Object.entries(byTech2).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+    ce(ws3,r3,0,e[0],st('FFFFFFFF','FF1C1A17',false,10));ce(ws3,r3,1,'S/ '+e[1].toFixed(2),st('FFFFFFFF','FF1C1A17',true,10));r3++;tT+=e[1];
+  });
+  ce(ws3,r3,0,'TOTAL',st('FFFAF8F4','FF1C1A17',true,10));ce(ws3,r3,1,'S/ '+tT.toFixed(2),st('FFFAF8F4','FFC8820A',true,10));r3+=2;
+  ce(ws3,r3,0,'RESUMEN DE COSTOS POR TIENDA',st('FFC8820A','FFFFFFFF',true,12));r3++;
+  ce(ws3,r3,0,'TIENDA',st('FF2C2924','FFFFF5E6',true,10));ce(ws3,r3,1,'COSTO TOTAL',st('FF2C2924','FFFFF5E6',true,10));r3++;
+  var byStore2={};movements.filter(function(m){return m.tipo==='SALIDA'&&m.tienda;}).forEach(function(m){byStore2[m.tienda]=(byStore2[m.tienda]||0)+m.costoTotal;});
+  var tS=0;Object.entries(byStore2).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+    ce(ws3,r3,0,e[0],st('FFFFFFFF','FF1C1A17',false,10));ce(ws3,r3,1,'S/ '+e[1].toFixed(2),st('FFFFFFFF','FF1C1A17',true,10));r3++;tS+=e[1];
+  });
+  ce(ws3,r3,0,'TOTAL',st('FFFAF8F4','FF1C1A17',true,10));ce(ws3,r3,1,'S/ '+tS.toFixed(2),st('FFFAF8F4','FFC8820A',true,10));
+  ws3['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r3,c:1}});
+  ws3['!cols']=[{wch:28},{wch:14}];
+  wb.SheetNames.push('Resumen Costos');wb.Sheets['Resumen Costos']=ws3;
+
+  var dt=new Date().toISOString().split('T')[0].replace(/-/g,'');
+  XLSX.writeFile(wb,'inventario_'+dt+'.xlsx',{bookSST:false,type:'binary',cellStyles:true});
+  showToast('✅ Excel exportado exitosamente');
+}
+
+// ── TOAST ──
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+// ── INIT ──
+document.getElementById('rFechaIni').value=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().split('T')[0];
+document.getElementById('rFechaFin').value=today();
+renderDashboard();
+
+// ── GUARDAR ARCHIVO CON DATOS EMBEBIDOS ──
+function descargarConDatos(){
+  var datos = {
+    materials: materials,
+    movements: movements,
+    nextMatId: nextMatId,
+    nextMovId: nextMovId
+  };
+  var contenido = btoa(unescape(encodeURIComponent(JSON.stringify(datos, null, 2))));
+  var body = {
+    message: 'Actualización inventario ' + new Date().toLocaleString('es-PE'),
+    content: contenido
+  };
+  if(GH_SHA) body.sha = GH_SHA;
+
+  var btnGuardar = document.querySelector('[onclick="descargarConDatos()"]');
+  if(btnGuardar){ btnGuardar.textContent = '⏳ Guardando…'; btnGuardar.disabled = true; }
+
+  fetch('https://api.github.com/repos/'+GH_USER+'/'+GH_REPO+'/contents/'+GH_FILE, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'token '+GH_TOKEN,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.content && data.content.sha){
+      GH_SHA = data.content.sha;
+      showToast('✅ Guardado en la nube correctamente');
+    } else {
+      showToast('⚠️ Error al guardar: '+JSON.stringify(data.message||data));
+    }
+    if(btnGuardar){ btnGuardar.textContent = '💾 Guardar'; btnGuardar.disabled = false; }
+  })
+  .catch(function(e){
+    showToast('⚠️ Error de conexión al guardar');
+    if(btnGuardar){ btnGuardar.textContent = '💾 Guardar'; btnGuardar.disabled = false; }
+  });
+}
+
+// Iniciar cargando datos desde GitHub
+cargarDesdeGitHub();
+</script>
+</body>
+</html>
