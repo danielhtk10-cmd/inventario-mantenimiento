@@ -231,6 +231,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
       <div class="nav-item" onclick="navTo('criticos',this)"><span class="nav-icon">🔴</span> Repuestos Críticos <span class="nav-badge" id="badgeCrit">0</span></div>
       <div class="nav-item" onclick="navTo('materiales',this)"><span class="nav-icon">🔧</span> Materiales</div>
       <div class="nav-item" onclick="navTo('movimientos',this)"><span class="nav-icon">🔄</span> Movimientos</div>
+      <div class="nav-item" onclick="navTo('activos',this)"><span class="nav-icon">🏪</span> Activos <span class="nav-badge" id="badgeActivos">0</span></div>
       <div class="nav-item" onclick="navTo('reporte',this)"><span class="nav-icon">📋</span> Reporte de Costos</div>
     </div>
     <div class="sb-section">
@@ -374,8 +375,125 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
       </div>
     </div>
 
+
+    <!-- ── TAB: ACTIVOS ── -->
+    <div id="tab-activos" class="tab-panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Activos <span>por Tienda</span></div>
+          <div class="page-desc">Equipos registrados — ubicación, estado y backups disponibles</div>
+        </div>
+        <button class="btn btn-amber" onclick="openModalActivo()">+ Agregar Activo</button>
+      </div>
+
+      <!-- DASHBOARD ACTIVOS -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="activosSummary"></div>
+
+      <!-- FILTROS -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px">
+          <input class="fi" type="text" id="fActSearch" placeholder="🔍 Buscar equipo..." oninput="renderActivos()" style="flex:1;min-width:160px">
+          <select class="fi" id="fActTienda" onchange="renderActivos()"><option value="">Todas las tiendas</option></select>
+          <select class="fi" id="fActTipo" onchange="renderActivos()"><option value="">Todos los tipos</option></select>
+          <select class="fi" id="fActEstado" onchange="renderActivos()">
+            <option value="">Todos los estados</option>
+            <option value="OPERATIVO">✅ Operativo</option>
+            <option value="REPARACION">🔧 En reparación</option>
+            <option value="BAJA">❌ De baja</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TABLA -->
+      <div class="card">
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table class="tbl">
+            <thead><tr>
+              <th>CÓDIGO</th><th>EQUIPO</th><th>TIPO</th><th>TIENDA</th>
+              <th>CANTIDAD</th><th>BACKUPS</th><th>ESTADO</th><th>NOTAS</th><th></th>
+            </tr></thead>
+            <tbody id="activosBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MAPA POR TIENDA -->
+      <div style="margin-top:20px">
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Vista por tienda</div>
+        <div id="activosPorTienda" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+      </div>
+    </div>
   </div><!-- /main -->
 </div><!-- /app -->
+
+
+<!-- ── MODAL: ACTIVO ── -->
+<div id="mActivo" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <h2 id="mActivoTitle" class="modal-title">Nuevo Activo</h2>
+        <p id="mActivoSub" class="modal-sub">Registra un equipo o activo por tienda</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('mActivo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="aActivoId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre del equipo *</label>
+          <input class="fi" type="text" id="aNombre" placeholder="Ej: Freidora industrial">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo / Categoría</label>
+          <input class="fi" type="text" id="aTipo" placeholder="Ej: Cocina, Refrigeración, Motor">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tienda / Ubicación *</label>
+          <input class="fi" type="text" id="aTienda" placeholder="Ej: Plaza Norte, MegaPlaza">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Código / Serie</label>
+          <input class="fi" type="text" id="aCodigo" placeholder="Ej: ACT-001">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cantidad en tienda</label>
+          <input class="fi" type="number" id="aCantidad" placeholder="1" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Backups disponibles</label>
+          <input class="fi" type="number" id="aBackups" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="fi" id="aEstado">
+            <option value="OPERATIVO">✅ Operativo</option>
+            <option value="REPARACION">🔧 En reparación</option>
+            <option value="BAJA">❌ De baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha de registro</label>
+          <input class="fi" type="date" id="aFecha">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <input class="fi" type="text" id="aNotas" placeholder="Observaciones adicionales">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('mActivo')">Cancelar</button>
+      <button class="btn btn-amber" onclick="saveActivo()">Guardar Activo</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── MODAL: NUEVO MATERIAL ── -->
 <div class="modal-overlay" id="mMaterial" style="display:none" onclick="if(event.target===this)closeModal('mMaterial')">
@@ -532,6 +650,8 @@ var GH_USER  = 'danielhtk10-cmd';
 var GH_REPO  = 'inventario-mantenimiento';
 var GH_FILE  = 'datos.json';
 var GH_SHA   = null;
+var activos = [];
+var nextActivoId = 1;
 
 // Token se guarda en localStorage del navegador, nunca en el archivo
 var GH_TOKEN = localStorage.getItem('gh_inv_token') || '';
@@ -562,8 +682,10 @@ function cargarDesdeGitHub(){
     if(decoded.materials && decoded.materials.length>0){
       materials = decoded.materials;
       movements = decoded.movements || [];
-      nextMatId = decoded.nextMatId || (Math.max.apply(null,materials.map(function(m){return m.id;}))+1);
-      nextMovId = decoded.nextMovId || (movements.length>0?Math.max.apply(null,movements.map(function(m){return m.id;}))+1:1);
+      activos   = decoded.activos   || [];
+      nextMatId    = decoded.nextMatId    || (Math.max.apply(null,materials.map(function(m){return m.id;}))+1);
+      nextMovId    = decoded.nextMovId    || (movements.length>0?Math.max.apply(null,movements.map(function(m){return m.id;}))+1:1);
+      nextActivoId = decoded.nextActivoId || (activos.length>0?Math.max.apply(null,activos.map(function(a){return a.id;}))+1:1);
     } else {
       if(materials.length===0) loadSampleData();
     }
@@ -635,6 +757,7 @@ function navTo(tab, el){
   if(tab==='criticos')renderCriticos();
   if(tab==='materiales')renderMateriales();
   if(tab==='movimientos')renderMovimientos();
+  if(tab==='activos')renderActivos();
   if(tab==='reporte')renderReporte();
 }
 
@@ -1073,10 +1196,12 @@ renderDashboard();
 // ── GUARDAR ARCHIVO CON DATOS EMBEBIDOS ──
 function descargarConDatos(){
   var datos = {
-    materials: materials,
-    movements: movements,
-    nextMatId: nextMatId,
-    nextMovId: nextMovId
+    materials:    materials,
+    movements:    movements,
+    activos:      activos,
+    nextMatId:    nextMatId,
+    nextMovId:    nextMovId,
+    nextActivoId: nextActivoId
   };
   var contenido = btoa(unescape(encodeURIComponent(JSON.stringify(datos, null, 2))));
   var body = {
@@ -1140,6 +1265,204 @@ function cambiarToken(){
   GH_TOKEN = '';
   document.getElementById('token-input').value = '';
   mostrarModalToken();
+}
+
+// ── ACTIVOS ──────────────────────────────────────────
+
+function openModalActivo(id){
+  document.getElementById('aActivoId').value = id || '';
+  document.getElementById('aFecha').value = today();
+  if(id){
+    var a = activos.find(function(x){return x.id===id;});
+    if(!a) return;
+    document.getElementById('mActivoTitle').textContent = 'Editar Activo';
+    document.getElementById('mActivoSub').textContent   = a.codigo+' · '+a.nombre;
+    document.getElementById('aNombre').value   = a.nombre;
+    document.getElementById('aTipo').value     = a.tipo||'';
+    document.getElementById('aTienda').value   = a.tienda;
+    document.getElementById('aCodigo').value   = a.codigo||'';
+    document.getElementById('aCantidad').value = a.cantidad||1;
+    document.getElementById('aBackups').value  = a.backups||0;
+    document.getElementById('aEstado').value   = a.estado||'OPERATIVO';
+    document.getElementById('aFecha').value    = a.fecha||today();
+    document.getElementById('aNotas').value    = a.notas||'';
+  } else {
+    document.getElementById('mActivoTitle').textContent = 'Nuevo Activo';
+    document.getElementById('mActivoSub').textContent   = 'Registra un equipo o activo por tienda';
+    document.getElementById('aNombre').value   = '';
+    document.getElementById('aTipo').value     = '';
+    document.getElementById('aTienda').value   = '';
+    document.getElementById('aCodigo').value   = '';
+    document.getElementById('aCantidad').value = 1;
+    document.getElementById('aBackups').value  = 0;
+    document.getElementById('aEstado').value   = 'OPERATIVO';
+    document.getElementById('aNotas').value    = '';
+  }
+  document.getElementById('mActivo').style.display='flex';
+}
+
+function saveActivo(){
+  var nombre = document.getElementById('aNombre').value.trim();
+  var tienda = document.getElementById('aTienda').value.trim();
+  if(!nombre){showToast('⚠️ El nombre es obligatorio');return;}
+  if(!tienda){showToast('⚠️ La tienda es obligatoria');return;}
+  var id = parseInt(document.getElementById('aActivoId').value)||0;
+  if(id){
+    var a = activos.find(function(x){return x.id===id;});
+    if(a){
+      a.nombre   = nombre;
+      a.tipo     = document.getElementById('aTipo').value.trim()||'General';
+      a.tienda   = tienda;
+      a.codigo   = document.getElementById('aCodigo').value.trim()||('ACT-'+(id).toString().padStart(3,'0'));
+      a.cantidad = parseFloat(document.getElementById('aCantidad').value)||1;
+      a.backups  = parseFloat(document.getElementById('aBackups').value)||0;
+      a.estado   = document.getElementById('aEstado').value;
+      a.notas    = document.getElementById('aNotas').value.trim();
+    }
+    showToast('✅ Activo actualizado');
+  } else {
+    var nuevo = {
+      id:        nextActivoId++,
+      nombre:    nombre,
+      tipo:      document.getElementById('aTipo').value.trim()||'General',
+      tienda:    tienda,
+      codigo:    document.getElementById('aCodigo').value.trim()||('ACT-'+(nextActivoId-1).toString().padStart(3,'0')),
+      cantidad:  parseFloat(document.getElementById('aCantidad').value)||1,
+      backups:   parseFloat(document.getElementById('aBackups').value)||0,
+      estado:    document.getElementById('aEstado').value,
+      fecha:     document.getElementById('aFecha').value||today(),
+      notas:     document.getElementById('aNotas').value.trim()
+    };
+    activos.push(nuevo);
+    showToast('✅ Activo "'+nuevo.nombre+'" agregado');
+  }
+  closeModal('mActivo');
+  renderActivos();
+  updateSidebar();
+}
+
+function deleteActivo(id){
+  if(!confirm('¿Eliminar este activo?')) return;
+  activos = activos.filter(function(a){return a.id!==id;});
+  closeModal('mActivo');
+  renderActivos();
+  updateSidebar();
+  showToast('🗑 Activo eliminado');
+}
+
+function renderActivos(){
+  var search  = (document.getElementById('fActSearch')||{value:''}).value.toLowerCase();
+  var fTienda = (document.getElementById('fActTienda')||{value:''}).value;
+  var fTipo   = (document.getElementById('fActTipo')||{value:''}).value;
+  var fEstado = (document.getElementById('fActEstado')||{value:''}).value;
+
+  // Rellenar selects de filtro
+  var tiendas = [...new Set(activos.map(function(a){return a.tienda;}))].sort();
+  var tipos   = [...new Set(activos.map(function(a){return a.tipo;}))].sort();
+  var selT = document.getElementById('fActTienda');
+  var selTi = document.getElementById('fActTipo');
+  if(selT){
+    var curT = selT.value;
+    selT.innerHTML = '<option value="">Todas las tiendas</option>';
+    tiendas.forEach(function(t){selT.innerHTML+='<option value="'+t+'"'+(t===curT?' selected':'')+'>'+t+'</option>';});
+  }
+  if(selTi){
+    var curTi = selTi.value;
+    selTi.innerHTML = '<option value="">Todos los tipos</option>';
+    tipos.forEach(function(t){selTi.innerHTML+='<option value="'+t+'"'+(t===curTi?' selected':'')+'>'+t+'</option>';});
+  }
+
+  var lista = activos.filter(function(a){
+    if(search && !(a.nombre+a.tienda+a.tipo+a.codigo).toLowerCase().includes(search)) return false;
+    if(fTienda && a.tienda!==fTienda) return false;
+    if(fTipo   && a.tipo!==fTipo)     return false;
+    if(fEstado && a.estado!==fEstado) return false;
+    return true;
+  });
+
+  // Tabla
+  var tbody = document.getElementById('activosBody');
+  if(tbody){
+    if(!lista.length){
+      tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Sin activos registrados</td></tr>';
+    } else {
+      tbody.innerHTML = lista.map(function(a){
+        var eClr = a.estado==='OPERATIVO'?'var(--green)':a.estado==='REPARACION'?'var(--amber)':'var(--red)';
+        var eLbl = a.estado==='OPERATIVO'?'✅ Operativo':a.estado==='REPARACION'?'🔧 Reparación':'❌ De baja';
+        return '<tr>'+
+          '<td style="font-size:11px;color:var(--muted)">'+a.codigo+'</td>'+
+          '<td style="font-weight:600">'+a.nombre+'</td>'+
+          '<td><span style="background:var(--surface2);padding:2px 8px;border-radius:3px;font-size:11px">'+a.tipo+'</span></td>'+
+          '<td>'+a.tienda+'</td>'+
+          '<td style="text-align:center;font-weight:600">'+a.cantidad+'</td>'+
+          '<td style="text-align:center"><span style="background:'+(a.backups>0?'#e6f4ec':'#fde9e3')+';color:'+(a.backups>0?'var(--green)':'var(--red)')+';padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">'+a.backups+'</span></td>'+
+          '<td><span style="color:'+eClr+';font-size:12px;font-weight:600">'+eLbl+'</span></td>'+
+          '<td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+a.notas+'">'+a.notas+'</td>'+
+          '<td><button style="padding:3px 10px;font-size:11px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:transparent" onclick="openModalActivo('+a.id+')">✏ Editar</button></td>'+
+        '</tr>';
+      }).join('');
+    }
+  }
+
+  // Dashboard summary
+  var total      = activos.length;
+  var operativos = activos.filter(function(a){return a.estado==='OPERATIVO';}).length;
+  var reparacion = activos.filter(function(a){return a.estado==='REPARACION';}).length;
+  var totalBacks = activos.reduce(function(s,a){return s+a.backups;},0);
+  var sumEl = document.getElementById('activosSummary');
+  if(sumEl){
+    sumEl.innerHTML = [
+      {ic:'🏪', val:total,      lbl:'Total activos',       clr:'var(--ink)'},
+      {ic:'✅', val:operativos, lbl:'Operativos',           clr:'var(--green)'},
+      {ic:'🔧', val:reparacion, lbl:'En reparación',        clr:'var(--amber)'},
+      {ic:'📦', val:totalBacks, lbl:'Backups disponibles',  clr:'var(--ink)'},
+    ].map(function(s){
+      return '<div class="card" style="text-align:center;padding:16px 10px">'+
+        '<div style="font-size:22px;margin-bottom:4px">'+s.ic+'</div>'+
+        '<div style="font-family:Fraunces,serif;font-size:1.6rem;font-weight:700;color:'+s.clr+'">'+s.val+'</div>'+
+        '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">'+s.lbl+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Vista por tienda
+  var porTienda = document.getElementById('activosPorTienda');
+  if(porTienda){
+    var tiendasUnicas = [...new Set(activos.map(function(a){return a.tienda;}))].sort();
+    if(!tiendasUnicas.length){
+      porTienda.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:20px">Agrega activos para ver la vista por tienda.</div>';
+    } else {
+      porTienda.innerHTML = tiendasUnicas.map(function(t){
+        var items = activos.filter(function(a){return a.tienda===t;});
+        var rows  = items.map(function(a){
+          var eClr = a.estado==='OPERATIVO'?'var(--green)':a.estado==='REPARACION'?'var(--amber)':'var(--red)';
+          var eLbl = a.estado==='OPERATIVO'?'OK':a.estado==='REPARACION'?'Rep.':'Baja';
+          return '<tr>'+
+            '<td style="font-size:12px;font-weight:600">'+a.nombre+'</td>'+
+            '<td style="font-size:11px;color:var(--muted)">'+a.tipo+'</td>'+
+            '<td style="text-align:center;font-size:12px">'+a.cantidad+'</td>'+
+            '<td style="text-align:center"><span style="background:'+(a.backups>0?'#e6f4ec':'#fde9e3')+';color:'+(a.backups>0?'var(--green)':'var(--red)')+';padding:1px 7px;border-radius:8px;font-size:11px">'+a.backups+'</span></td>'+
+            '<td style="font-size:11px;color:'+eClr+';font-weight:600">'+eLbl+'</td>'+
+          '</tr>';
+        }).join('');
+        var opCount = items.filter(function(a){return a.estado==='OPERATIVO';}).length;
+        var repCount = items.filter(function(a){return a.estado==='REPARACION';}).length;
+        return '<div class="card">'+
+          '<div class="card-header" style="background:var(--ink);color:#fff">'+
+            '<span class="card-title" style="color:#fff">🏪 '+t+'</span>'+
+            '<span style="font-size:11px;color:rgba(255,255,255,.6)">'+items.length+' equipo'+(items.length!==1?'s':'')+(repCount>0?' · <span style="color:#fbbf24">'+repCount+' en rep.</span>':'')+'</span>'+
+          '</div>'+
+          '<div style="overflow-x:auto">'+
+          '<table class="tbl"><thead><tr><th>EQUIPO</th><th>TIPO</th><th>CANT.</th><th>BACKUP</th><th>ESTADO</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table></div>'+
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // Badge nav
+  var badge = document.getElementById('badgeActivos');
+  if(badge) badge.textContent = activos.length;
 }
 
 // Iniciar: pedir token si no existe, sino cargar directo
