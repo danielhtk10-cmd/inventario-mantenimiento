@@ -428,8 +428,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
 
 
 <!-- ── MODAL: ACTIVO ── -->
-<div id="mActivo" class="modal" style="display:none">
-  <div class="modal-box" style="max-width:520px">
+<div id="mActivo" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('mActivo')">
+  <div class="modal-box" style="max-width:520px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <div>
         <h2 id="mActivoTitle" class="modal-title">Nuevo Activo</h2>
@@ -1299,6 +1299,7 @@ function openModalActivo(id){
     document.getElementById('aNotas').value    = '';
   }
   document.getElementById('mActivo').style.display='flex';
+  setTimeout(function(){ document.getElementById('aNombre').focus(); }, 100);
 }
 
 function saveActivo(){
