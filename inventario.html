@@ -188,6 +188,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
   <span class="header-sub">Control de Materiales y Repuestos</span>
   <div class="header-space"></div>
   <div class="header-actions">
+    <button class="btn btn-ghost" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="cambiarToken()" title="Cambiar token de acceso">🔑</button>
     <button class="btn btn-ghost" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportReport()">⬇ Exportar Excel</button>
     <button class="btn btn-ghost" style="border-color:rgba(255,255,255,.3);color:#c8e8d8;font-weight:600" onclick="descargarConDatos()">💾 Guardar</button>
     <button class="btn btn-amber" onclick="openModal('mMovimiento')">+ Registrar Movimiento</button>
@@ -195,6 +196,27 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
 
 </div>
 
+<div id="modal-token" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:8px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:#1c3829;margin-bottom:8px">🔑 Configurar acceso</div>
+    <p style="font-size:.82rem;color:#7a6f5c;margin-bottom:20px;line-height:1.6">
+      Para sincronizar con la nube necesitas ingresar tu token de GitHub. 
+      Solo se pide una vez por dispositivo — queda guardado en este navegador.
+    </p>
+    <input id="token-input" type="password" placeholder="ghp_..." 
+      style="width:100%;padding:10px 12px;border:1.5px solid #d6cdb8;border-radius:4px;font-family:monospace;font-size:.85rem;margin-bottom:16px;box-sizing:border-box">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="cerrarModalToken()" 
+        style="padding:8px 18px;border:1px solid #d6cdb8;border-radius:3px;background:transparent;cursor:pointer;font-size:.78rem">
+        Solo ver (sin guardar)
+      </button>
+      <button onclick="guardarToken()"
+        style="padding:8px 18px;background:#1c3829;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:.78rem;font-weight:600">
+        Guardar y conectar
+      </button>
+    </div>
+  </div>
+</div>
 <div id="loading-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(28,56,41,.95);color:#c8e8d8;padding:12px 24px;font-size:.8rem;align-items:center;justify-content:center;gap:10px">
   <span style="animation:spin 1s linear infinite;display:inline-block">⏳</span>
   Cargando inventario desde la nube…
@@ -508,9 +530,11 @@ var nextMovId = 1;
 // ── GITHUB CONFIG ──
 var GH_USER  = 'danielhtk10-cmd';
 var GH_REPO  = 'inventario-mantenimiento';
-var GH_TOKEN = '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';
 var GH_FILE  = 'datos.json';
-var GH_SHA   = null; // se llena al cargar
+var GH_SHA   = null;
+
+// Token se guarda en localStorage del navegador, nunca en el archivo
+var GH_TOKEN = localStorage.getItem('gh_inv_token') || '';
 
 // Cargar datos desde GitHub al iniciar
 function cargarDesdeGitHub(){
@@ -1089,8 +1113,37 @@ function descargarConDatos(){
   });
 }
 
-// Iniciar cargando datos desde GitHub
-cargarDesdeGitHub();
+// ── TOKEN MODAL ──
+function mostrarModalToken(){
+  var m = document.getElementById('modal-token');
+  m.style.display = 'flex';
+  setTimeout(function(){ document.getElementById('token-input').focus(); }, 100);
+}
+function cerrarModalToken(){
+  document.getElementById('modal-token').style.display = 'none';
+  // Sin token: solo lectura, sin guardar
+  if(materials.length===0) loadSampleData();
+  renderAll();
+}
+function guardarToken(){
+  var t = document.getElementById('token-input').value.trim();
+  if(!t){ showToast('⚠️ Ingresa el token'); return; }
+  localStorage.setItem('gh_inv_token', t);
+  GH_TOKEN = t;
+  document.getElementById('modal-token').style.display = 'none';
+  cargarDesdeGitHub();
+}
+
+// Botón para cambiar token (por si expira)
+function cambiarToken(){
+  localStorage.removeItem('gh_inv_token');
+  GH_TOKEN = '';
+  document.getElementById('token-input').value = '';
+  mostrarModalToken();
+}
+
+// Iniciar: pedir token si no existe, sino cargar directo
+if(!GH_TOKEN){ mostrarModalToken(); } else { cargarDesdeGitHub(); }
 </script>
 </body>
 </html>
