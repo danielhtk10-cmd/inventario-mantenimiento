@@ -387,7 +387,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
       </div>
 
       <!-- DASHBOARD ACTIVOS -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="activosSummary"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="activosSummary"></div>
 
       <!-- FILTROS -->
       <div class="card" style="margin-bottom:16px">
@@ -410,7 +410,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
           <table class="tbl">
             <thead><tr>
               <th>CÓDIGO</th><th>EQUIPO</th><th>TIPO</th><th>TIENDA</th>
-              <th>CANTIDAD</th><th>BACKUPS</th><th>ESTADO</th><th>NOTAS</th><th></th>
+              <th>CANTIDAD</th><th>ESTADO</th><th>NOTAS</th><th></th>
             </tr></thead>
             <tbody id="activosBody"></tbody>
           </table>
@@ -429,7 +429,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
 
 <!-- ── MODAL: ACTIVO ── -->
 <div id="mActivo" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('mActivo')">
-  <div class="modal-box" style="max-width:520px;max-height:90vh;overflow-y:auto">
+  <div class="modal-box" style="max-width:520px;max-height:90vh;overflow-y:auto;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-md);">
     <div class="modal-header">
       <div>
         <h2 id="mActivoTitle" class="modal-title">Nuevo Activo</h2>
@@ -465,12 +465,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
           <input class="fi" type="number" id="aCantidad" placeholder="1" min="0">
         </div>
         <div class="form-group">
-          <label class="form-label">Backups disponibles</label>
-          <input class="fi" type="number" id="aBackups" placeholder="0" min="0">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
           <label class="form-label">Estado</label>
           <select class="fi" id="aEstado">
             <option value="OPERATIVO">✅ Operativo</option>
@@ -478,6 +472,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
             <option value="BAJA">❌ De baja</option>
           </select>
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Fecha de registro</label>
           <input class="fi" type="date" id="aFecha">
@@ -1282,7 +1278,6 @@ function openModalActivo(id){
     document.getElementById('aTienda').value   = a.tienda;
     document.getElementById('aCodigo').value   = a.codigo||'';
     document.getElementById('aCantidad').value = a.cantidad||1;
-    document.getElementById('aBackups').value  = a.backups||0;
     document.getElementById('aEstado').value   = a.estado||'OPERATIVO';
     document.getElementById('aFecha').value    = a.fecha||today();
     document.getElementById('aNotas').value    = a.notas||'';
@@ -1294,7 +1289,6 @@ function openModalActivo(id){
     document.getElementById('aTienda').value   = '';
     document.getElementById('aCodigo').value   = '';
     document.getElementById('aCantidad').value = 1;
-    document.getElementById('aBackups').value  = 0;
     document.getElementById('aEstado').value   = 'OPERATIVO';
     document.getElementById('aNotas').value    = '';
   }
@@ -1316,7 +1310,6 @@ function saveActivo(){
       a.tienda   = tienda;
       a.codigo   = document.getElementById('aCodigo').value.trim()||('ACT-'+(id).toString().padStart(3,'0'));
       a.cantidad = parseFloat(document.getElementById('aCantidad').value)||1;
-      a.backups  = parseFloat(document.getElementById('aBackups').value)||0;
       a.estado   = document.getElementById('aEstado').value;
       a.notas    = document.getElementById('aNotas').value.trim();
     }
@@ -1329,7 +1322,6 @@ function saveActivo(){
       tienda:    tienda,
       codigo:    document.getElementById('aCodigo').value.trim()||('ACT-'+(nextActivoId-1).toString().padStart(3,'0')),
       cantidad:  parseFloat(document.getElementById('aCantidad').value)||1,
-      backups:   parseFloat(document.getElementById('aBackups').value)||0,
       estado:    document.getElementById('aEstado').value,
       fecha:     document.getElementById('aFecha').value||today(),
       notas:     document.getElementById('aNotas').value.trim()
@@ -1396,7 +1388,6 @@ function renderActivos(){
           '<td><span style="background:var(--surface2);padding:2px 8px;border-radius:3px;font-size:11px">'+a.tipo+'</span></td>'+
           '<td>'+a.tienda+'</td>'+
           '<td style="text-align:center;font-weight:600">'+a.cantidad+'</td>'+
-          '<td style="text-align:center"><span style="background:'+(a.backups>0?'#e6f4ec':'#fde9e3')+';color:'+(a.backups>0?'var(--green)':'var(--red)')+';padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">'+a.backups+'</span></td>'+
           '<td><span style="color:'+eClr+';font-size:12px;font-weight:600">'+eLbl+'</span></td>'+
           '<td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+a.notas+'">'+a.notas+'</td>'+
           '<td><button style="padding:3px 10px;font-size:11px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:transparent" onclick="openModalActivo('+a.id+')">✏ Editar</button></td>'+
@@ -1409,14 +1400,12 @@ function renderActivos(){
   var total      = activos.length;
   var operativos = activos.filter(function(a){return a.estado==='OPERATIVO';}).length;
   var reparacion = activos.filter(function(a){return a.estado==='REPARACION';}).length;
-  var totalBacks = activos.reduce(function(s,a){return s+a.backups;},0);
   var sumEl = document.getElementById('activosSummary');
   if(sumEl){
     sumEl.innerHTML = [
       {ic:'🏪', val:total,      lbl:'Total activos',       clr:'var(--ink)'},
       {ic:'✅', val:operativos, lbl:'Operativos',           clr:'var(--green)'},
       {ic:'🔧', val:reparacion, lbl:'En reparación',        clr:'var(--amber)'},
-      {ic:'📦', val:totalBacks, lbl:'Backups disponibles',  clr:'var(--ink)'},
     ].map(function(s){
       return '<div class="card" style="text-align:center;padding:16px 10px">'+
         '<div style="font-size:22px;margin-bottom:4px">'+s.ic+'</div>'+
@@ -1442,7 +1431,6 @@ function renderActivos(){
             '<td style="font-size:12px;font-weight:600">'+a.nombre+'</td>'+
             '<td style="font-size:11px;color:var(--muted)">'+a.tipo+'</td>'+
             '<td style="text-align:center;font-size:12px">'+a.cantidad+'</td>'+
-            '<td style="text-align:center"><span style="background:'+(a.backups>0?'#e6f4ec':'#fde9e3')+';color:'+(a.backups>0?'var(--green)':'var(--red)')+';padding:1px 7px;border-radius:8px;font-size:11px">'+a.backups+'</span></td>'+
             '<td style="font-size:11px;color:'+eClr+';font-weight:600">'+eLbl+'</td>'+
           '</tr>';
         }).join('');
@@ -1454,7 +1442,7 @@ function renderActivos(){
             '<span style="font-size:11px;color:rgba(255,255,255,.6)">'+items.length+' equipo'+(items.length!==1?'s':'')+(repCount>0?' · <span style="color:#fbbf24">'+repCount+' en rep.</span>':'')+'</span>'+
           '</div>'+
           '<div style="overflow-x:auto">'+
-          '<table class="tbl"><thead><tr><th>EQUIPO</th><th>TIPO</th><th>CANT.</th><th>BACKUP</th><th>ESTADO</th></tr></thead>'+
+          '<table class="tbl"><thead><tr><th>EQUIPO</th><th>TIPO</th><th>CANT.</th><th>ESTADO</th></tr></thead>'+
           '<tbody>'+rows+'</tbody></table></div>'+
         '</div>';
       }).join('');
