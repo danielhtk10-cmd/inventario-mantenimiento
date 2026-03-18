@@ -3,13 +3,13 @@
     {
       "tipo": "normal",
       "codigo": "MAT-001",
-      "nombre": "Cinta teflÃ³n 3/4\"",
-      "categoria": "GasfiterÃ­a",
+      "nombre": "Cinta teflÃÂ³n 3/4\"",
+      "categoria": "GasfiterÃÂ­a",
       "unidad": "rollo",
       "stock": 16,
       "minStock": 5,
       "costoUnit": 2.5,
-      "proveedor": "FerreterÃ­a Lima",
+      "proveedor": "FerreterÃÂ­a Lima",
       "notas": "",
       "id": 5,
       "createdAt": "2026-03-12"
@@ -18,7 +18,7 @@
       "tipo": "normal",
       "codigo": "MAT-002",
       "nombre": "Cable 2.5mm THW",
-      "categoria": "ElÃ©ctrico",
+      "categoria": "ElÃÂ©ctrico",
       "unidad": "metro",
       "stock": 80,
       "minStock": 20,
@@ -32,12 +32,12 @@
       "tipo": "normal",
       "codigo": "MAT-003",
       "nombre": "Fusible 5A",
-      "categoria": "ElÃ©ctrico",
+      "categoria": "ElÃÂ©ctrico",
       "unidad": "unidad",
       "stock": 30,
       "minStock": 10,
       "costoUnit": 0.8,
-      "proveedor": "FerreterÃ­a Lima",
+      "proveedor": "FerreterÃÂ­a Lima",
       "notas": "",
       "id": 7,
       "createdAt": "2026-03-12"
@@ -46,7 +46,7 @@
       "tipo": "normal",
       "codigo": "MAT-004",
       "nombre": "Gas refrigerante R404A",
-      "categoria": "RefrigeraciÃ³n",
+      "categoria": "RefrigeraciÃÂ³n",
       "unidad": "kg",
       "stock": 3.5,
       "minStock": 3,
@@ -65,7 +65,7 @@
       "stock": 8,
       "minStock": 4,
       "costoUnit": 12,
-      "proveedor": "FerreterÃ­a Lima",
+      "proveedor": "FerreterÃÂ­a Lima",
       "notas": "300ml",
       "id": 9,
       "createdAt": "2026-03-12"
@@ -120,7 +120,7 @@
       "tecnico": "",
       "tienda": "",
       "ot": "",
-      "notas": "ReposiciÃ³n mensual",
+      "notas": "ReposiciÃÂ³n mensual",
       "fecha": "2026-03-12",
       "id": 3,
       "costoTotal": 760
@@ -139,8 +139,20 @@
       "costoTotal": 17.5
     }
   ],
-  "activos": [],
+  "activos": [
+    {
+      "id": 1,
+      "nombre": "freidora",
+      "tipo": "cocina",
+      "tienda": "proveedor",
+      "codigo": "ACT-001",
+      "cantidad": 1,
+      "estado": "OPERATIVO",
+      "fecha": "2026-03-18",
+      "notas": ""
+    }
+  ],
   "nextMatId": 12,
   "nextMovId": 5,
-  "nextActivoId": 1
+  "nextActivoId": 2
 }
