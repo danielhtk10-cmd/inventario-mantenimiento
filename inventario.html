@@ -176,6 +176,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Mulish',sans-serif;font-
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 </style>
+
+<script>if(!localStorage.getItem('gh_inv_token')){localStorage.setItem('gh_inv_token','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');}</script>
 </head>
 <body>
 
@@ -650,7 +652,7 @@ var activos = [];
 var nextActivoId = 1;
 
 // Token se guarda en localStorage del navegador, nunca en el archivo
-var GH_TOKEN = localStorage.getItem('gh_inv_token') || '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';
+var GH_TOKEN = localStorage.getItem('gh_inv_token') || '';
 
 // Cargar datos desde GitHub al iniciar
 function cargarDesdeGitHub(){
